@@ -252,10 +252,6 @@ elif page == "🧾 Rechnung erstellen":
         with open(pdf_folder / download_name, "wb") as f:
             f.write(buffer.getvalue())
 
-        # Download anzeigen
-        #with open(pdf_path, "rb") as f:
-            #st.success("✅ Rechnung erfolgreich erstellt!")
-
 # ==============================
 # ARCHIV
 # ==============================
@@ -265,4 +261,5 @@ elif page == "📚 Archiv":
 
 st.markdown("---")
 st.caption("© 2025 DellKuss – Der Dellendoktor | Lokale Rechnungsverwaltung ohne Cloud")
+
 
