@@ -214,5 +214,6 @@ def create_invoice_pdf(filepath, logo_path, kunde, fahrzeug, positionen, summen)
     draw_footer(c, width)
     c.showPage()
     c.save()
-    return filepath
+    return target
+
 
