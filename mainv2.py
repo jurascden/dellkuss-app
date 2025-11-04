@@ -3,6 +3,7 @@ from datetime import datetime, date
 import os
 from pathlib import Path
 import base64
+from io import BytesIO
 
 
 # ==============================
@@ -180,10 +181,11 @@ elif page == "🧾 Rechnung erstellen":
         rechnungsdatum_key = rechnungsdatum.replace(".", "")  # z.B. 31102025
         rechnungsnummer = f"{rechnungsdatum_key}{rechnungsnr_index}"  # z.B. 311020253400
         # Dateipfad
-        pdf_folder = Path("pdf/export")
-        pdf_folder.mkdir(parents=True, exist_ok=True)
-        pdf_filename = f"Rechnung_{rechnungsnummer}.pdf"
-        pdf_path = pdf_folder / pdf_filename
+        #pdf_folder = Path("pdf/export")
+        #pdf_folder.mkdir(parents=True, exist_ok=True)
+        #pdf_filename = f"Rechnung_{rechnungsnummer}.pdf"
+        #pdf_path = pdf_folder / pdf_filename
+        buffer = BytesIO()
 
         # Daten vorbereiten für PDF
         kunde = {
@@ -222,17 +224,37 @@ elif page == "🧾 Rechnung erstellen":
 
         # PDF erzeugen
         create_invoice_pdf(
-            str(pdf_path),
-            str(logo_path),
+            buffer,
+            "assets/logo.png",
             kunde,
             fahrzeug,
             positionen_liste,
             summen
         )
 
+        # Nach create_invoice_pdf(...)
+        buffer.seek(0)
+        
+        # Dateiname wie gewünscht – z. B. Rechnung_{deine_nummer}.pdf
+        download_name = f"Rechnung_{summen['rechnungsnummer']}.pdf"
+        
+        st.success("✅ Rechnung erfolgreich erstellt!")
+        st.download_button(
+            label="📥 PDF herunterladen",
+            data=buffer,
+            file_name=download_name,
+            mime="application/pdf"
+        )
+
+        # OPTIONAL lokal speichern:
+        pdf_folder = Path("pdf/export")
+        pdf_folder.mkdir(parents=True, exist_ok=True)
+        with open(pdf_folder / download_name, "wb") as f:
+            f.write(buffer.getvalue())
+
         # Download anzeigen
-        with open(pdf_path, "rb") as f:
-            st.success("✅ Rechnung erfolgreich erstellt!")
+        #with open(pdf_path, "rb") as f:
+            #st.success("✅ Rechnung erfolgreich erstellt!")
 
 # ==============================
 # ARCHIV
@@ -243,3 +265,4 @@ elif page == "📚 Archiv":
 
 st.markdown("---")
 st.caption("© 2025 DellKuss – Der Dellendoktor | Lokale Rechnungsverwaltung ohne Cloud")
+
