@@ -86,11 +86,11 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     kontakt_x_right = 400
     kontakt_y_start = kunden_y_start - 14
     if not kontakt:
-    kontakt = {
-        "tel": "+49 157 58226071",
-        "email": "info@dellkuss.de",
-        "web": "www.dellkuss.de"
-    }
+        kontakt = {
+            "tel": "+49 157 58226071",
+            "email": "info@dellkuss.de",
+            "web": "www.dellkuss.de"
+        }
     c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
     c.drawString(kontakt_x_right, kontakt_y_start - 14, f"E-Mail: {kontakt.get('email', '')}")
     c.drawString(kontakt_x_right, kontakt_y_start - 28, f"Web: {kontakt.get('web', '')}")
@@ -222,6 +222,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
