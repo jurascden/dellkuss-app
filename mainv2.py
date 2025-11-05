@@ -10,8 +10,8 @@ from io import BytesIO
 # APP KONFIGURATION
 # ==============================
 st.set_page_config(
-    page_title="DellKuss Rechnungsmanager",
-    page_icon="💼",
+    page_title="DellKuss Mini-App",
+    page_icon="🦞",
     layout="wide"
 )
 
@@ -117,22 +117,40 @@ if logo_base64:
 # ==============================
 # NAVIGATION
 # ==============================
-page = st.sidebar.radio("Navigation", ["🏠 Startseite", "🧾 Rechnung erstellen", "📚 Archiv"])
+page = st.sidebar.radio("Navigation", ["🌤️ Startseite", "🗃️ Rechnung erstellen", "🐙 Sonstiges"])
 
 # ==============================
 # STARTSEITE
 # ==============================
-if page == "🏠 Startseite":
+if page == "🌤️ Startseite":
     st.write("Willkommen im **DellKuss Rechnungsmanager**. Wählen Sie eine Funktion im Menü.")
 
 # ==============================
 # RECHNUNG ERSTELLEN
 # ==============================
-elif page == "🧾 Rechnung erstellen":
-    st.header("🧾 Neue Rechnung")
+elif page == "🗃️ Rechnung erstellen":
+    st.header("Neue Rechnung")
+    
+    # --- Auswahl des Unternehmens ---
+    unternehmen = st.selectbox("Unternehmen auswählen", ["Dellkuss", "Automobile Kuss"])
+    # --- Unternehmensspezifische Daten ---
+    if unternehmen == "Dellkuss":
+        logo_path = "assets/logo.png"
+        firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
+        fusszeile = [
+            "dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
+            "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642"
+        ]
+    else:
+        logo_path = "assets/logo2.png"
+        firmendaten = ["Autombile Kuss", "Edisonstr. 9", "86399 Bobingen"]
+        fusszeile = [
+            "Automobile Kuss · Sparkasse Schwaben-Bodensee · IBAN DE99 7001 1111 2222 3333 44 · BIC ABCDDEFFXXX",
+            "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: Jaroslaw Kuss · USt-IdNr. DE000000000"
+        ]
 
     # --- Kundendaten ---
-    st.subheader("👤 Kundendaten")
+    st.subheader("🕴 Kundendaten")
     col1, col2 = st.columns(2)
     with col1:
         kunde_anrede = st.selectbox("Anrede", ["Herr", "Frau", "Firma"])
@@ -154,7 +172,7 @@ elif page == "🧾 Rechnung erstellen":
         fahrzeug_fin = st.text_input("Fahrgestellnummer (FIN)")
 
     # --- Leistungspositionen ---
-    st.subheader("💼 Leistungspositionen")
+    st.subheader("🛠️ Leistungspositionen")
     rechnungsnr_index = st.text_input("Rechnungsnr_Index")
     rechnungsdatum = st.date_input("Rechnungsdatum", value=date.today()).strftime("%d.%m.%Y")
     rechnungsnummer_datum = rechnungsdatum
@@ -174,7 +192,7 @@ elif page == "🧾 Rechnung erstellen":
         positionen.append((beschreibung, betrag))
 
     # --- Gesamtsummen ---
-    st.subheader("🧮 Gesamtsumme")
+    st.subheader("💲 Gesamtsumme")
     summe_netto = sum([betrag for _, betrag in positionen])
     mwst = summe_netto * 0.19
     summe_brutto = summe_netto + mwst
@@ -185,7 +203,7 @@ elif page == "🧾 Rechnung erstellen":
     with col3: st.metric("Gesamtbetrag (€)", f"{summe_brutto:,.2f}")
 
     # --- Aktionen ---
-    st.subheader("💾 Aktionen")
+    st.subheader("🌌 Aktionen")
 
     from utils.pdf_generator_v2 import create_invoice_pdf
 
@@ -234,7 +252,6 @@ elif page == "🧾 Rechnung erstellen":
             "brutto": summe_netto * 1.19
         }
 
-
         # PDF erzeugen
         create_invoice_pdf(
             buffer,
@@ -268,12 +285,13 @@ elif page == "🧾 Rechnung erstellen":
 # ==============================
 # ARCHIV
 # ==============================
-elif page == "📚 Archiv":
-    st.subheader("📚 Rechnungsarchiv")
-    st.write("Hier können erstellte Rechnungen angezeigt oder geöffnet werden.")
+elif page == "🐙 Sonstiges":
+    st.subheader("🐙 Sonstige Erweiterungsmöglichkeiten")
+    st.write("Hier können weitere Sachen stehen, wenn notwendig.")
 
 st.markdown("---")
-st.caption("© 2025 DellKuss – Der Dellendoktor | Lokale Rechnungsverwaltung ohne Cloud")
+st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
