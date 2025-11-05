@@ -28,21 +28,22 @@ def draw_table_header(c, width, height, header_y):
     c.line(40, header_y - 17, width - 40, header_y - 17)
 
 
-def draw_footer(c, width):
+def draw_footer(c, width, fusszeile=None):
     c.setFont("Helvetica", 8)
     c.drawCentredString(width / 2, FOOTER_LINE1_Y,
         "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Rechnungsdatum auf das unten stehende Geschäftskonto.")
     c.setFont("Helvetica", 7.5)
-    c.drawCentredString(width / 2, FOOTER_LINE2_Y,
-        "dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM")
-    c.drawCentredString(width / 2, FOOTER_LINE3_Y,
-        "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642")
+    if not fusszeile:
+        fusszeile = ["dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
+            "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642"]
+    c.drawCentredString(width / 2, FOOTER_LINE2_Y, fusszeile[0])
+    c.drawCentredString(width / 2, FOOTER_LINE3_Y, fusszeile[1]
 
 
 # ------------------------------------------------------------
 # Hauptfunktion – identisches Layout, aber mit Streamlit-Daten
 # ------------------------------------------------------------
-def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen):
+def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None):
     """target: str/Pfad (lokal speichern) ODER file-like (BytesIO für Cloud/iPhone)"""
     c = canvas.Canvas(target, pagesize=A4)
     width, height = A4
@@ -58,12 +59,13 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen):
         c.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
 
     # ------------------------------------------------------------
-    # FIRMENDATEN (rechts)
+    # FIRMENDATEN (rechts, dynamisch)
     # ------------------------------------------------------------
     firmendaten_x = 400
     firmendaten_y = logo_y - 25
     line_height = 13.5
-    firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
+    if not firmendaten:
+        firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
     for i, text in enumerate(firmendaten):
         c.drawString(firmendaten_x, firmendaten_y - (i * line_height), text)
 
@@ -141,7 +143,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen):
 
         # Seitenumbruch
         if lines_on_page == ITEMS_PER_PAGE:
-            draw_footer(c, width)
+            draw_footer(c, width, fusszeile)
             c.showPage()
             new_header_y = height - 60
             c.setFont("Helvetica-Bold", 9)
@@ -211,9 +213,10 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen):
     # ------------------------------------------------------------
     # FOOTER + ABSCHLUSS
     # ------------------------------------------------------------
-    draw_footer(c, width)
+    draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
