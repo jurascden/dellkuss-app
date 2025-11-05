@@ -35,7 +35,7 @@ st.markdown("""
     color: #FFFFFF !important;
 }
 
-/* === Buttons === */
+/* === Buttons PDF Erstellen === */
 .stButton>button {
     background-color: #00635A !important;
     color: #FFFFFF !important;
@@ -45,7 +45,20 @@ st.markdown("""
     transition: 0.3s !important;
 }
 .stButton>button:hover {
-    background-color: #8B5CF6 !important;
+    background-color: #350c94 !important;
+}
+
+/* === Download-Button PDF herunterladen === */
+.stDownloadButton > button {
+    background-color: #9c3548 !important;
+    color: #FFFFFF !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    transition: 0.3s !important;
+}
+.stDownloadButton > button:hover {
+    background-color: #350c94 !important;
 }
 
 /* === Labels & Eingabetexte schwarz === */
@@ -69,7 +82,7 @@ textarea {
     border-radius: 6px !important;
 }
 
-/* === Farbe und Stil der st.metric Werte === */
+/* === Farbe und Stil der st.metric Werte Summe MwSt Endsumme === */
 div[data-testid="stMetricValue"] {
     color: #1F8A70 !important;     /* hier deine gewünschte Farbe */
     font-weight: 800 !important;   /* fett für bessere Lesbarkeit */
@@ -261,5 +274,6 @@ elif page == "📚 Archiv":
 
 st.markdown("---")
 st.caption("© 2025 DellKuss – Der Dellendoktor | Lokale Rechnungsverwaltung ohne Cloud")
+
 
 
