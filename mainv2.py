@@ -137,6 +137,11 @@ elif page == "🗃️ Rechnung erstellen":
     if unternehmen == "Dellkuss":
         logo_path = "assets/logo.png"
         firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
+        kontakt = {
+        "tel": "08234 / 123456",
+        "email": "info@dellkuss.de",
+        "web": "www.dellkuss.de"
+        }
         fusszeile = [
             "dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
             "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642"
@@ -144,6 +149,9 @@ elif page == "🗃️ Rechnung erstellen":
     else:
         logo_path = "assets/logo2.png"
         firmendaten = ["Autombile Kuss", "Edisonstr. 9", "86399 Bobingen"]
+        kontakt = {
+        "tel": "08234 / 123456",
+        }
         fusszeile = [
             "Automobile Kuss · Sparkasse Schwaben-Bodensee · IBAN DE99 7001 1111 2222 3333 44 · BIC ABCDDEFFXXX",
             "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: Jaroslaw Kuss · USt-IdNr. DE000000000"
@@ -256,6 +264,7 @@ elif page == "🗃️ Rechnung erstellen":
         create_invoice_pdf(
             buffer,
             logo_path,
+            kontakt,
             kunde,
             fahrzeug,
             positionen_liste,
@@ -293,6 +302,7 @@ elif page == "🐙 Sonstiges":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
