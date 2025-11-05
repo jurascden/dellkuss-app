@@ -43,7 +43,7 @@ def draw_footer(c, width, fusszeile=None):
 # ------------------------------------------------------------
 # Hauptfunktion – identisches Layout, aber mit Streamlit-Daten
 # ------------------------------------------------------------
-def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None):
+def create_invoice_pdf(target, logo_path, kontakt=None, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None):
     """target: str/Pfad (lokal speichern) ODER file-like (BytesIO für Cloud/iPhone)"""
     c = canvas.Canvas(target, pagesize=A4)
     width, height = A4
@@ -85,9 +85,15 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     # ------------------------------------------------------------
     kontakt_x_right = 400
     kontakt_y_start = kunden_y_start - 14
-    c.drawString(kontakt_x_right, kontakt_y_start, "Tel.: 08234 / 123456")
-    c.drawString(kontakt_x_right, kontakt_y_start - 14, "E-Mail: info@dellkuss.de")
-    c.drawString(kontakt_x_right, kontakt_y_start - 28, "Web: www.dellkuss.de")
+    if not kontakt:
+    kontakt = {
+        "tel": "+49 157 58226071",
+        "email": "info@dellkuss.de",
+        "web": "www.dellkuss.de"
+    }
+    c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
+    c.drawString(kontakt_x_right, kontakt_y_start - 14, f"E-Mail: {kontakt.get('email', '')}")
+    c.drawString(kontakt_x_right, kontakt_y_start - 28, f"Web: {kontakt.get('web', '')}")
 
     # ------------------------------------------------------------
     # RECHNUNGS-INFOS
@@ -216,6 +222,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
