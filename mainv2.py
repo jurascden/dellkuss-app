@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import base64
 from io import BytesIO
+from utils.pdf_generator_v2 import create_invoice_pdf
 
 
 # ==============================
@@ -212,9 +213,6 @@ elif page == "🗃️ Rechnung erstellen":
 
     # --- Aktionen ---
     st.subheader("🌌 Aktionen")
-
-    from utils.pdf_generator_v2 import create_invoice_pdf
-
     if st.button("📄 PDF erstellen"):
         # --- Rechnungsnummer manuell zusammensetzen ---
         rechnungsdatum_key = rechnungsdatum.replace(".", "")  # z.B. 31102025
@@ -302,6 +300,7 @@ elif page == "🐙 Sonstiges":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
