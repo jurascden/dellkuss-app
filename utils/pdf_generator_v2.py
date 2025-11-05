@@ -43,7 +43,7 @@ def draw_footer(c, width, fusszeile=None):
 # ------------------------------------------------------------
 # Hauptfunktion – identisches Layout, aber mit Streamlit-Daten
 # ------------------------------------------------------------
-def create_invoice_pdf(target, logo_path, kontakt=None, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None):
+def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None, kontakt=None):
     """target: str/Pfad (lokal speichern) ODER file-like (BytesIO für Cloud/iPhone)"""
     c = canvas.Canvas(target, pagesize=A4)
     width, height = A4
@@ -222,6 +222,7 @@ def create_invoice_pdf(target, logo_path, kontakt=None, kunde, fahrzeug, positio
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
