@@ -132,13 +132,13 @@ elif page == "🗃️ Rechnung erstellen":
     st.header("Neue Rechnung")
     
     # --- Auswahl des Unternehmens ---
-    unternehmen = st.selectbox("Unternehmen auswählen", ["Dellkuss", "Automobile Kuss"])
+    unternehmen = st.selectbox("Unternehmen auswählen", ["DellKuss", "Automobile Kuss"])
     # --- Unternehmensspezifische Daten ---
-    if unternehmen == "Dellkuss":
+    if unternehmen == "DellKuss":
         logo_path = "assets/logo.png"
         firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
         kontakt = {
-        "tel": "08234 / 123456",
+        "tel": "+49 157 58226071",
         "email": "info@dellkuss.de",
         "web": "www.dellkuss.de"
         }
@@ -148,7 +148,7 @@ elif page == "🗃️ Rechnung erstellen":
         ]
     else:
         logo_path = "assets/logo2.png"
-        firmendaten = ["Autombile Kuss", "Edisonstr. 9", "86399 Bobingen"]
+        firmendaten = ["Automobile Kuss", "Edisonstr. 9", "86399 Bobingen"]
         kontakt = {
         "tel": "08234 / 123456",
         }
@@ -302,6 +302,7 @@ elif page == "🐙 Sonstiges":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
