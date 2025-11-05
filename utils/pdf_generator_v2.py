@@ -37,7 +37,7 @@ def draw_footer(c, width, fusszeile=None):
         fusszeile = ["dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
             "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642"]
     c.drawCentredString(width / 2, FOOTER_LINE2_Y, fusszeile[0])
-    c.drawCentredString(width / 2, FOOTER_LINE3_Y, fusszeile[1]
+    c.drawCentredString(width / 2, FOOTER_LINE3_Y, fusszeile[1])
 
 
 # ------------------------------------------------------------
@@ -216,6 +216,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
