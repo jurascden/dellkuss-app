@@ -78,7 +78,7 @@ div[data-testid="stSelectbox"] div[data-baseweb="select"],
 textarea {
     color: #000000 !important;
     background-color: #FFFFFF !important;
-    border: 1px solid #00635A !important;
+    border: 1px solid #0F1116 !important;
     border-radius: 6px !important;
 }
 
@@ -274,6 +274,7 @@ elif page == "📚 Archiv":
 
 st.markdown("---")
 st.caption("© 2025 DellKuss – Der Dellendoktor | Lokale Rechnungsverwaltung ohne Cloud")
+
 
 
 
