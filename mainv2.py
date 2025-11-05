@@ -123,7 +123,7 @@ page = st.sidebar.radio("Navigation", ["🌤️ Startseite", "🗃️ Rechnung e
 # STARTSEITE
 # ==============================
 if page == "🌤️ Startseite":
-    st.write("Willkommen im **DellKuss Rechnungsmanager**. Wählen Sie eine Funktion im Menü.")
+    st.write("Willkommen in der **DellKuss Mini-App**. Links eine Funktion im Menü auswählen.")
 
 # ==============================
 # RECHNUNG ERSTELLEN
@@ -291,6 +291,7 @@ elif page == "🐙 Sonstiges":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
