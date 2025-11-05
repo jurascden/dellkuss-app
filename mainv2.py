@@ -255,11 +255,13 @@ elif page == "🗃️ Rechnung erstellen":
         # PDF erzeugen
         create_invoice_pdf(
             buffer,
-            "assets/logo.png",
+            logo_path,
             kunde,
             fahrzeug,
             positionen_liste,
-            summen
+            summen,
+            firmendaten,
+            fusszeile
         )
 
         # Nach create_invoice_pdf(...)
@@ -291,6 +293,7 @@ elif page == "🐙 Sonstiges":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
