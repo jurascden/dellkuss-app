@@ -15,7 +15,6 @@ SUM_TOP_Y = FOOTER_LINE1_Y + 50
 ITEMS_PER_PAGE = 20
 LINE_HEIGHT = 14
 
-
 # ------------------------------------------------------------
 # Tabellenkopf & Footer (unverändert)
 # ------------------------------------------------------------
@@ -88,7 +87,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     if not kontakt:
         kontakt = {
             "tel": "+49 157 58226071",
-            "email": "info@dellkuss.de",
+            "email": "kontakt@dellkuss.de",
             "web": "www.dellkuss.de"
         }
     c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
@@ -191,30 +190,47 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
         y -= LINE_HEIGHT
 
     # ------------------------------------------------------------
-    # SUMMENBLOCK (unverändert im Design)
+    # SUMMENBLOCK (Brutto vs. Netto Darstellung)
+    # - Wenn summen["mode"] == "Netto": kompakte Anzeige
+    # - Sonst: klassisches Brutto-Layout
     # ------------------------------------------------------------
     summe_netto = summen.get("netto", 0)
     ust = summen.get("mwst", 0)
     summe_brutto = summen.get("brutto", 0)
+    mode = summen.get("mode", "Brutto")
 
-    y_sum_block = y - LINE_HEIGHT - 20
-    c.line(width - 165, y_sum_block - 4, width - 40, y_sum_block - 4)
-    c.line(width - 165, y_sum_block - 18, width - 40, y_sum_block - 18)
+    if mode == "Netto":
+        # Netto-Block im Brutto-Stil: doppelter Strich + Endsumme
+        y_sum_block = y - LINE_HEIGHT - 20
+        c.line(width - 165, y_sum_block - 4, width - 40, y_sum_block - 4)
+        c.line(width - 165, y_sum_block - 7, width - 40, y_sum_block - 7)
 
-    c.setFont("Helvetica", 9)
-    c.drawRightString(width - 100, y_sum_block, "Summe netto:")
-    c.drawRightString(width - 40, y_sum_block,
-                      f"{summe_netto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    c.drawRightString(width - 100, y_sum_block - 14, "zzgl. USt. 19%:")
-    c.drawRightString(width - 40, y_sum_block - 14,
-                      f"{ust:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    y_end = y_sum_block - 28
-    c.line(width - 165, y_end - 4, width - 40, y_end - 4)
-    c.line(width - 165, y_end - 7, width - 40, y_end - 7)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawRightString(width - 100, y_end, "Endsumme:")
-    c.drawRightString(width - 40, y_end,
-                      f"{summe_brutto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        c.setFont("Helvetica-Bold", 9)
+        c.drawRightString(width - 100, y_sum_block, "Nettobetrag:")
+        c.drawRightString(width - 40, y_sum_block,
+                          f"{summe_netto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    else:
+        # ------------------------------------------------------------
+        # SUMMENBLOCK (unverändert im Design)
+        # ------------------------------------------------------------
+        y_sum_block = y - LINE_HEIGHT - 20
+        c.line(width - 165, y_sum_block - 4, width - 40, y_sum_block - 4)
+        c.line(width - 165, y_sum_block - 18, width - 40, y_sum_block - 18)
+
+        c.setFont("Helvetica", 9)
+        c.drawRightString(width - 100, y_sum_block, "Summe netto:")
+        c.drawRightString(width - 40, y_sum_block,
+                          f"{summe_netto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        c.drawRightString(width - 100, y_sum_block - 14, "zzgl. USt. 19%:")
+        c.drawRightString(width - 40, y_sum_block - 14,
+                          f"{ust:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        y_end = y_sum_block - 28
+        c.line(width - 165, y_end - 4, width - 40, y_end - 4)
+        c.line(width - 165, y_end - 7, width - 40, y_end - 7)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawRightString(width - 100, y_end, "Endsumme:")
+        c.drawRightString(width - 40, y_end,
+                          f"{summe_brutto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
     # ------------------------------------------------------------
     # FOOTER + ABSCHLUSS
@@ -222,6 +238,8 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
+
 
 
 
