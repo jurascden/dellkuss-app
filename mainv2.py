@@ -136,19 +136,19 @@ elif page == "🗃️ Rechnung erstellen":
     # --- Unternehmensspezifische Daten ---
     if unternehmen == "DellKuss":
         logo_path = "assets/logo.png"
-        firmendaten = ["dellkuss", "Edisonstr. 9", "86399 Bobingen"]
+        firmendaten = ["David Kuss", "Edisonstr. 9", "86399 Bobingen"]
         kontakt = {
         "tel": "+49 157 58226071",
-        "email": "info@dellkuss.de",
+        "email": "kontakt@dellkuss.de",
         "web": "www.dellkuss.de"
         }
         fusszeile = [
             "dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
-            "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: David Kuss · USt-IdNr. DE75392071642"
+            "Sitz der Firma: Bobingen, Deutschland · Inhaber: David Kuss · USt-IdNr. DE75392071642"
         ]
     else:
         logo_path = "assets/logo2.png"
-        firmendaten = ["Automobile Kuss", "Edisonstr. 9", "86399 Bobingen"]
+        firmendaten = ["Jaroslaw Kuss", "Edisonstr. 9", "86399 Bobingen"]
         kontakt = {
         "tel": "08234 / 123456",
         }
@@ -181,8 +181,24 @@ elif page == "🗃️ Rechnung erstellen":
 
     # --- Leistungspositionen ---
     st.subheader("🛠️ Leistungspositionen")
+    # --- Betragsmodus ---
+    if "modus" not in st.session_state:
+        st.session_state["modus"] = "Brutto"
+    st.markdown("**Betragsmodus**")
+    bcol1, bcol2, _ = st.columns([0.12, 0.12, 1])
+    current = st.session_state.get("modus", "Brutto")
+    with bcol1:
+        if st.button("Brutto", key="modus_brutto"):
+            st.session_state["modus"] = "Brutto"
+    with bcol2:
+        if st.button("Netto", key="modus_netto"):
+            st.session_state["modus"] = "Netto"
+    modus = st.session_state.get("modus", "Brutto")
+    
+
     rechnungsnr_index = st.text_input("Rechnungsnr_Index")
-    rechnungsdatum = st.date_input("Rechnungsdatum", value=date.today()).strftime("%d.%m.%Y")
+    rechnungsdatum_obj = st.date_input("Rechnungsdatum", value=date.today())
+    rechnungsdatum = rechnungsdatum_obj.strftime("%d.%m.%Y")
     rechnungsnummer_datum = rechnungsdatum
     anzahl_positionen = st.number_input("Anzahl der Positionen", min_value=1, max_value=50, value=3)
 
@@ -202,21 +218,28 @@ elif page == "🗃️ Rechnung erstellen":
     # --- Gesamtsummen ---
     st.subheader("💲 Gesamtsumme")
     summe_netto = sum([betrag for _, betrag in positionen])
-    mwst = summe_netto * 0.19
-    summe_brutto = summe_netto + mwst
-
-    col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Summe netto (€)", f"{summe_netto:,.2f}")
-    with col2: st.metric("MwSt (19%) (€)", f"{mwst:,.2f}")
-    with col3: st.metric("Gesamtbetrag (€)", f"{summe_brutto:,.2f}")
+    if modus == "Brutto":
+        mwst = summe_netto * 0.19
+        summe_brutto = summe_netto + mwst
+        col1, col2, col3 = st.columns(3)
+        with col1: st.metric("Summe netto (€)", f"{summe_netto:,.2f}")
+        with col2: st.metric("MwSt (19%) (€)", f"{mwst:,.2f}")
+        with col3: st.metric("Gesamtbetrag (€)", f"{summe_brutto:,.2f}")
+    else:
+        # Netto-Modus: nur Gesamtbetrag netto anzeigen, ohne MwSt
+        mwst = 0.0
+        summe_brutto = summe_netto
+        col = st.columns(1)[0]
+        col.metric("Gesamtbetrag netto (€)", f"{summe_netto:,.2f}")
 
     # --- Aktionen ---
     st.subheader("🌌 Aktionen")
     from utils.pdf_generator_v2 import create_invoice_pdf
     if st.button("📄 PDF erstellen"):
-        # --- Rechnungsnummer manuell zusammensetzen ---
-        rechnungsdatum_key = rechnungsdatum.replace(".", "")  # z.B. 31102025
-        rechnungsnummer = f"{rechnungsdatum_key}{rechnungsnr_index}"  # z.B. 311020253400
+        # --- Rechnungsnummer manuell zusammensetzen (neues Format: YYYY{index}) ---
+        index_clean = str(rechnungsnr_index).strip()
+        jahr = rechnungsdatum_obj.year
+        rechnungsnummer = f"{jahr}{index_clean}"
         # Dateipfad
         #pdf_folder = Path("pdf/export")
         #pdf_folder.mkdir(parents=True, exist_ok=True)
@@ -250,12 +273,21 @@ elif page == "🗃️ Rechnung erstellen":
 
         # Summen berechnen
         summe_netto = sum([p["summe"] for p in positionen_liste])
+        if modus == "Brutto":
+            mwst_val = summe_netto * 0.19
+            brutto_val = summe_netto * 1.19
+        else:
+            # Netto-Modus: keine MwSt
+            mwst_val = 0.0
+            brutto_val = summe_netto
+
         summen = {
             "datum": rechnungsdatum,
             "rechnungsnummer": rechnungsnummer,
             "netto": summe_netto,
-            "mwst": summe_netto * 0.19,
-            "brutto": summe_netto * 1.19
+            "mwst": mwst_val,
+            "brutto": brutto_val,
+            "mode": modus
         }
 
         # PDF erzeugen
