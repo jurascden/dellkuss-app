@@ -4,6 +4,10 @@ import os
 from pathlib import Path
 import base64
 from io import BytesIO
+from utils.storage import init_db, save_invoice, get_all_invoices, get_invoice_by_number, delete_invoice
+init_db()
+import pandas as pd
+import base64
 
 
 # ==============================
@@ -35,7 +39,7 @@ st.markdown("""
     color: #FFFFFF !important;
 }
 
-/* === Buttons PDF Erstellen === */
+/* === Button PDF erstellen === */
 .stButton>button {
     background-color: #00635A !important;
     color: #FFFFFF !important;
@@ -90,7 +94,7 @@ div[data-testid="stMetricValue"] {
 div[data-testid="stMetricLabel"] {
     color: #000000 !important;     /* Label (z. B. "Summe netto") in schwarz */
     font-weight: 600 !important;
-}          
+}           
 </style>
 """, unsafe_allow_html=True)
 
@@ -117,7 +121,10 @@ if logo_base64:
 # ==============================
 # NAVIGATION
 # ==============================
-page = st.sidebar.radio("Navigation", ["🌤️ Startseite", "🗃️ Rechnung erstellen", "🐙 Sonstiges"])
+if "edit_invoice_number" in st.session_state:
+    st.session_state["seite"] = "🗃️ Rechnung erstellen"
+
+page = st.sidebar.radio("Navigation", ["🌤️ Startseite", "🗃️ Rechnung erstellen", "🐙 Archiv"], key="seite")
 
 # ==============================
 # STARTSEITE
@@ -130,6 +137,41 @@ if page == "🌤️ Startseite":
 # ==============================
 elif page == "🗃️ Rechnung erstellen":
     st.header("Neue Rechnung")
+
+    # ==============================
+    # EDIT-MODUS: Rechnung aus Archiv laden
+    # ==============================
+    if "edit_invoice_number" in st.session_state:
+        data = get_invoice_by_number(st.session_state["edit_invoice_number"])
+
+        if data:
+            # Kundendaten
+            st.session_state["kunde_anrede"] = data["kunde_anrede"]
+            st.session_state["kunde_name"] = data["kunde_name"]
+            st.session_state["kunde_adresse"] = data["kunde_adresse"]
+            st.session_state["kunde_ort"] = data["kunde_ort"]
+            st.session_state["kunde_tel"] = data["kunde_tel"]
+
+            # Fahrzeugdaten
+            st.session_state["fahrzeug_marke"] = data["fahrzeug_marke"]
+            st.session_state["fahrzeug_baujahr"] = data["fahrzeug_baujahr"]
+            st.session_state["fahrzeug_farbe"] = data["fahrzeug_farbe"]
+            st.session_state["fahrzeug_fin"] = data["fahrzeug_fin"]
+
+            # Rechnungsdaten
+            st.session_state["modus"] = data["modus"]
+            st.session_state["rechnungsnr_index"] = data["rechnungsnr_index"]
+            st.session_state["rechnungsdatum_obj"] = date.fromisoformat(
+                data["rechnungsdatum_obj"]
+            )
+
+            # Positionen
+            st.session_state["anzahl_positionen"] = data["anzahl_positionen"]
+            for i, pos in enumerate(data["positionen"]):
+                st.session_state[f"beschreibung_{i}"] = pos["beschreibung"]
+                st.session_state[f"betrag_{i}"] = pos["summe"]
+
+        del st.session_state["edit_invoice_number"]
     
     # --- Auswahl des Unternehmens ---
     unternehmen = st.selectbox("Unternehmen auswählen", ["DellKuss", "Automobile Kuss"])
@@ -161,23 +203,23 @@ elif page == "🗃️ Rechnung erstellen":
     st.subheader("🕴 Kundendaten")
     col1, col2 = st.columns(2)
     with col1:
-        kunde_anrede = st.selectbox("Anrede", ["Herr", "Frau", "Firma"])
-        kunde_name = st.text_input("Name / Firma")
-        kunde_adresse = st.text_input("Straße und Hausnummer")
+        kunde_anrede = st.selectbox("Anrede", ["Herr", "Frau", "Firma"], key="kunde_anrede")
+        kunde_name = st.text_input("Name / Firma", key="kunde_name")
+        kunde_adresse = st.text_input("Straße und Hausnummer", key="kunde_adresse")
     with col2:
-        kunde_ort = st.text_input("PLZ / Ort")
-        kunde_tel = st.text_input("Telefonnummer")
+        kunde_ort = st.text_input("PLZ / Ort", key="kunde_ort")
+        kunde_tel = st.text_input("Telefonnummer", key="kunde_tel")
 
 
     # --- Fahrzeugdaten ---
     st.subheader("🚗 Fahrzeugdaten")
     col1, col2 = st.columns(2)
     with col1:
-        fahrzeug_marke = st.text_input("Marke / Typ")
-        fahrzeug_farbe = st.text_input("Farbe")
+        fahrzeug_marke = st.text_input("Marke / Typ", key="fahrzeug_marke")
+        fahrzeug_farbe = st.text_input("Farbe", key="fahrzeug_farbe")
     with col2:
-        fahrzeug_baujahr = st.text_input("Baujahr")
-        fahrzeug_fin = st.text_input("Fahrgestellnummer (FIN)")
+        fahrzeug_baujahr = st.text_input("Baujahr", key="fahrzeug_baujahr")
+        fahrzeug_fin = st.text_input("Fahrgestellnummer (FIN)", key="fahrzeug_fin")
 
     # --- Leistungspositionen ---
     st.subheader("🛠️ Leistungspositionen")
@@ -196,11 +238,24 @@ elif page == "🗃️ Rechnung erstellen":
     modus = st.session_state.get("modus", "Brutto")
     
 
-    rechnungsnr_index = st.text_input("Rechnungsnr_Index")
-    rechnungsdatum_obj = st.date_input("Rechnungsdatum", value=date.today())
+    rechnungsnr_index = st.text_input("Rechnungsnr_Index", key="rechnungsnr_index")
+    if "rechnungsdatum_obj" not in st.session_state:
+        st.session_state["rechnungsdatum_obj"] = date.today()
+    rechnungsdatum_obj = st.date_input(
+        "Rechnungsdatum",
+        key="rechnungsdatum_obj"
+    )
     rechnungsdatum = rechnungsdatum_obj.strftime("%d.%m.%Y")
     rechnungsnummer_datum = rechnungsdatum
-    anzahl_positionen = st.number_input("Anzahl der Positionen", min_value=1, max_value=50, value=3)
+    if "anzahl_positionen" not in st.session_state:
+        st.session_state["anzahl_positionen"] = 1
+    st.number_input(
+        "Anzahl der Positionen",
+        min_value=1,
+        max_value=50,
+        key="anzahl_positionen"
+    )
+    anzahl_positionen = st.session_state["anzahl_positionen"]
 
     col_h1, col_h2 = st.columns([4, 1])
     with col_h1: st.markdown("**Beschreibung**")
@@ -290,6 +345,38 @@ elif page == "🗃️ Rechnung erstellen":
             "mode": modus
         }
 
+        payload = {
+            "unternehmen": unternehmen,
+
+            "kunde_anrede": kunde_anrede,
+            "kunde_name": kunde_name,
+            "kunde_adresse": kunde_adresse,
+            "kunde_ort": kunde_ort,
+            "kunde_tel": kunde_tel,
+
+            "fahrzeug_marke": fahrzeug_marke,
+            "fahrzeug_baujahr": fahrzeug_baujahr,
+            "fahrzeug_farbe": fahrzeug_farbe,
+            "fahrzeug_fin": fahrzeug_fin,
+
+            "modus": modus,
+            "rechnungsnr_index": rechnungsnr_index,
+            "rechnungsdatum": rechnungsdatum,
+            "rechnungsdatum_obj": rechnungsdatum_obj.isoformat(),
+
+            "anzahl_positionen": int(anzahl_positionen),
+
+            "positionen": positionen_liste
+        }
+
+        save_invoice(
+            invoice_number=rechnungsnummer,
+            invoice_date=rechnungsdatum_obj.isoformat(),
+            customer_name=kunde_name,
+            total=brutto_val,
+            payload=payload
+        )
+
         # PDF erzeugen
         create_invoice_pdf(
             buffer,
@@ -305,37 +392,148 @@ elif page == "🗃️ Rechnung erstellen":
 
         # Nach create_invoice_pdf(...)
         buffer.seek(0)
-        
-        # Dateiname wie gewünscht – z. B. Rechnung_{deine_nummer}.pdf
-        download_name = f"Rechnung_{summen['rechnungsnummer']}.pdf"
-        
+
+        # Session State
+        st.session_state["pdf_buffer"] = buffer.getvalue()
+        st.session_state["pdf_preview"] = base64.b64encode(buffer.getvalue()).decode()
+        st.session_state["pdf_ready"] = True
+        st.session_state["show_preview"] = False
+        st.session_state["download_name"] = f"Rechnung_{summen['rechnungsnummer']}.pdf"
+        # Dateiname
+        #download_name = f"Rechnung_{summen['rechnungsnummer']}.pdf"
         st.success("✅ Rechnung erfolgreich erstellt!")
+
+    # =====================
+    # PDF VORSCHAU + DOWNLOAD
+    # =====================
+    if "show_preview" not in st.session_state:
+        st.session_state["show_preview"] = False
+
+    if st.session_state.get("pdf_ready"):
+
+        if st.button("👁️ PDF Vorschau"):
+            st.session_state["show_preview"] = not st.session_state["show_preview"]
+
+        if st.session_state["show_preview"]:
+            st.markdown(
+                f"""
+                <iframe
+                    src="data:application/pdf;base64,{st.session_state['pdf_preview']}"
+                    width="60%"
+                    height="850"
+                    style="border-radius:10px; border:1px solid #ccc;"
+                ></iframe>
+                """,
+                unsafe_allow_html=True
+            )
+
         st.download_button(
-            label="📥 PDF herunterladen",
-            data=buffer,
-            file_name=download_name,
+            "📥 PDF herunterladen",
+            data=st.session_state["pdf_buffer"],
+            file_name=st.session_state["download_name"],
             mime="application/pdf"
         )
 
         # OPTIONAL lokal speichern:
         pdf_folder = Path("pdf/export")
         pdf_folder.mkdir(parents=True, exist_ok=True)
-        with open(pdf_folder / download_name, "wb") as f:
-            f.write(buffer.getvalue())
+        with open(pdf_folder / st.session_state["download_name"], "wb") as f:
+            f.write(st.session_state["pdf_buffer"])
 
 # ==============================
 # ARCHIV
 # ==============================
-elif page == "🐙 Sonstiges":
-    st.subheader("🐙 Sonstige Erweiterungsmöglichkeiten")
-    st.write("Hier können weitere Sachen stehen, wenn notwendig.")
+elif page == "🐙 Archiv":
+    rows = get_all_invoices()
+
+    if not rows:
+        st.info("Noch keine Rechnungen gespeichert.")
+    else:
+        table_data = []
+
+        for r in rows:
+            _, nummer, _, kunde, _, _ = r
+            data = get_invoice_by_number(nummer)
+
+            table_data.append({
+                "Unternehmen": data.get("unternehmen", "–"),
+                "Rechnungsnummer": nummer,
+                "Kunde": kunde,
+                "Fahrzeug": data.get("fahrzeug_marke", "–"),
+                "Farbe": data.get("fahrzeug_farbe", "–"),
+            })
+
+        df = pd.DataFrame(table_data)
+
+        # ==============================
+        # FILTER
+        # ==============================
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            f_kunde = st.text_input("Kunde filtern")
+        with col2:
+            f_fahrzeug = st.text_input("Fahrzeug filtern")
+
+        filtered_df = df.copy()
+
+        if f_kunde:
+            filtered_df = filtered_df[
+                filtered_df["Kunde"].str.contains(f_kunde, case=False, na=False)
+            ]
+        if f_fahrzeug:
+            filtered_df = filtered_df[
+                filtered_df["Fahrzeug"].str.contains(f_fahrzeug, case=False, na=False)
+            ]
+
+        st.dataframe(
+            filtered_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("Aktionen")
+
+        selected_invoice = st.selectbox(
+            "Rechnung auswählen",
+            filtered_df["Rechnungsnummer"].tolist()
+        )
+
+        col_edit, col_delete = st.columns(2)
+
+        # ---------- BEARBEITEN ----------
+        with col_edit:
+            if st.button("✏️ Bearbeiten"):
+                st.session_state["edit_invoice_number"] = selected_invoice
+                st.rerun()
+
+        # ---------- LÖSCHEN ----------
+        with col_delete:
+            if st.button("🗑️ Löschen") and "delete_candidate" not in st.session_state:
+                st.session_state["delete_candidate"] = selected_invoice
+
+        # ---------- BESTÄTIGUNG (ohne gelben Kasten) ----------
+        if st.session_state.get("delete_candidate"):
+            st.markdown(
+                f"**Rechnung {st.session_state['delete_candidate']} wirklich löschen?**"
+            )
+
+            col_yes, col_no = st.columns(2)
+
+            with col_yes:
+                if st.button("✔ Ja, löschen", key="confirm_delete"):
+                    delete_invoice(st.session_state["delete_candidate"])
+                    del st.session_state["delete_candidate"]
+                    st.rerun()
+
+            with col_no:
+                if st.button("❌ Abbrechen", key="cancel_delete"):
+                    del st.session_state["delete_candidate"]
+                    st.rerun()
+
+
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
-
-
-
-
 
 
 
