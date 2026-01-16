@@ -4,8 +4,7 @@ import os
 from pathlib import Path
 import base64
 from io import BytesIO
-from utils.storage import init_db, save_invoice, get_all_invoices, get_invoice_by_number, delete_invoice
-init_db()
+from utils.storage import save_invoice, get_all_invoices, get_invoice_by_number, delete_invoice
 import pandas as pd
 import base64
 
@@ -534,6 +533,7 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
