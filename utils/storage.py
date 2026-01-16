@@ -1,84 +1,87 @@
-import sqlite3
-import json
+from supabase import create_client
+import streamlit as st
 from datetime import datetime
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "data" / "invoices.db"
+# Supabase Client
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_SECRET_KEY"]
+)
 
-def get_connection():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
+TABLE = "invoices"
 
-def init_db():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            invoice_number TEXT UNIQUE,
-            invoice_date TEXT,
-            customer_name TEXT,
-            total REAL,
-            payload TEXT,
-            updated_at TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
 
-def save_invoice(invoice_number, invoice_date, customer_name, total, payload):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO invoices (invoice_number, invoice_date, customer_name, total, payload, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(invoice_number) DO UPDATE SET
-            invoice_date=excluded.invoice_date,
-            customer_name=excluded.customer_name,
-            total=excluded.total,
-            payload=excluded.payload,
-            updated_at=excluded.updated_at
-    """, (
-        invoice_number,
-        invoice_date,
-        customer_name,
-        total,
-        json.dumps(payload),
-        datetime.now().isoformat()
-    ))
-    conn.commit()
-    conn.close()
+# =========================
+# CREATE / SAVE
+# =========================
+def save_invoice(
+    invoice_number: str,
+    invoice_date: str,
+    customer_name: str,
+    total: float,
+    payload: dict
+):
+    supabase.table(TABLE).insert({
+        "invoice_number": invoice_number,
+        "invoice_date": invoice_date,
+        "customer_name": customer_name,
+        "total": total,
+        "payload": payload
+    }).execute()
 
+
+# =========================
+# READ ALL
+# =========================
 def get_all_invoices():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, invoice_number, invoice_date, customer_name, total, updated_at
-        FROM invoices
-        ORDER BY invoice_date DESC
-    """)
-    rows = cur.fetchall()
-    conn.close()
-    return rows
-
-def get_invoice_by_number(invoice_number):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT payload FROM invoices WHERE invoice_number = ?
-    """, (invoice_number,))
-    row = cur.fetchone()
-    conn.close()
-    if row:
-        return json.loads(row[0])
-    return None
-
-def delete_invoice(invoice_number):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM invoices WHERE invoice_number = ?",
-        (invoice_number,)
+    res = (
+        supabase
+        .table(TABLE)
+        .select("id, invoice_number, invoice_date, customer_name, total, created_at")
+        .order("created_at", desc=True)
+        .execute()
     )
-    conn.commit()
-    conn.close()
+
+    if not res.data:
+        return []
+
+    return [
+        (
+            row["id"],
+            row["invoice_number"],
+            row["invoice_date"],
+            row["customer_name"],
+            row["total"],
+            row["created_at"],
+        )
+        for row in res.data
+    ]
+
+
+# =========================
+# READ SINGLE
+# =========================
+def get_invoice_by_number(invoice_number: str):
+    res = (
+        supabase
+        .table(TABLE)
+        .select("payload")
+        .eq("invoice_number", invoice_number)
+        .single()
+        .execute()
+    )
+
+    return res.data["payload"] if res.data else None
+
+
+# =========================
+# DELETE
+# =========================
+def delete_invoice(invoice_number: str):
+    (
+        supabase
+        .table(TABLE)
+        .delete()
+        .eq("invoice_number", invoice_number)
+        .execute()
+    )
