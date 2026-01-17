@@ -1,6 +1,7 @@
 from supabase import create_client
 import streamlit as st
 from datetime import datetime
+from postgrest.exceptions import APIError
 
 # Supabase Client
 supabase = create_client(
@@ -19,24 +20,40 @@ def save_invoice(
     invoice_date: str,
     customer_name: str,
     total: float,
-    payload: dict
+    payload: dict,
+    mode: str = "create"   # "create" | "update"
 ):
     try:
-        supabase.table(TABLE).insert({
-            "invoice_number": invoice_number,
-            "invoice_date": invoice_date,
-            "customer_name": customer_name,
-            "total": total,
-            "payload": payload
-        }).execute()
+        if mode == "create":
+            supabase.table(TABLE).insert({
+                "invoice_number": invoice_number,
+                "invoice_date": invoice_date,
+                "customer_name": customer_name,
+                "total": total,
+                "payload": payload
+            }).execute()
+
+        elif mode == "update":
+            res = supabase.table(TABLE) \
+                .update({
+                    "invoice_date": invoice_date,
+                    "customer_name": customer_name,
+                    "total": total,
+                    "payload": payload
+                }) \
+                .eq("invoice_number", invoice_number) \
+                .execute()
+
+            # WICHTIG: prüfen, ob wirklich aktualisiert wurde
+            if not res.data:
+                return "NOT_FOUND"
 
         return True
 
     except APIError as e:
-        if "duplicate key value violates unique constraint" in str(e):
+        if "duplicate key value" in str(e):
             return "DUPLICATE_INVOICE_NUMBER"
-        else:
-            raise e
+        raise
 
 
 # =========================
@@ -68,19 +85,22 @@ def get_all_invoices():
 
 
 # =========================
-# READ SINGLE
+# READ
 # =========================
 def get_invoice_by_number(invoice_number: str):
-    res = (
+    if not invoice_number:
+        return None
+
+    result = (
         supabase
         .table(TABLE)
-        .select("payload")
+        .select("*")
         .eq("invoice_number", invoice_number)
-        .single()
+        .maybe_single()
         .execute()
     )
 
-    return res.data["payload"] if res.data else None
+    return result.data
 
 
 # =========================
