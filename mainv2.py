@@ -8,6 +8,17 @@ from utils.storage import save_invoice, get_all_invoices, get_invoice_by_number,
 import pandas as pd
 import base64
 
+# ==============================
+# EDIT MODE STATE
+# ==============================
+if "is_edit_mode" not in st.session_state:
+    st.session_state["is_edit_mode"] = False
+
+if "edit_invoice_number" not in st.session_state:
+    st.session_state["edit_invoice_number"] = None
+
+if "edit_loaded_for" not in st.session_state:
+    st.session_state["edit_loaded_for"] = None
 
 # ==============================
 # APP KONFIGURATION
@@ -120,10 +131,18 @@ if logo_base64:
 # ==============================
 # NAVIGATION
 # ==============================
-if "edit_invoice_number" in st.session_state:
-    st.session_state["seite"] = "🗃️ Rechnung erstellen"
+if "seite" not in st.session_state:
+    st.session_state["seite"] = "🌤️ Startseite"
 
-page = st.sidebar.radio("Navigation", ["🌤️ Startseite", "🗃️ Rechnung erstellen", "🐙 Archiv"], key="seite")
+# Redirect aus Archiv -> Rechnung erstellen
+if st.session_state.get("navigate_to"):
+    st.session_state["seite"] = st.session_state.pop("navigate_to")
+
+page = st.sidebar.radio(
+    "Navigation",
+    ["🌤️ Startseite", "🗃️ Rechnung erstellen", "🐙 Archiv"],
+    key="seite"
+)
 
 # ==============================
 # STARTSEITE
@@ -136,44 +155,46 @@ if page == "🌤️ Startseite":
 # ==============================
 elif page == "🗃️ Rechnung erstellen":
     st.header("Neue Rechnung")
+    if st.session_state.get("edit_invoice_number") and \
+        st.session_state.get("edit_loaded_for") != st.session_state["edit_invoice_number"]:
 
-    # ==============================
-    # EDIT-MODUS: Rechnung aus Archiv laden
-    # ==============================
-    if "edit_invoice_number" in st.session_state:
         data = get_invoice_by_number(st.session_state["edit_invoice_number"])
 
         if data:
+            payload = data.get("payload", {})
+            st.session_state["unternehmen"] = payload.get("unternehmen", "")
             # Kundendaten
-            st.session_state["kunde_anrede"] = data["kunde_anrede"]
-            st.session_state["kunde_name"] = data["kunde_name"]
-            st.session_state["kunde_adresse"] = data["kunde_adresse"]
-            st.session_state["kunde_ort"] = data["kunde_ort"]
-            st.session_state["kunde_tel"] = data["kunde_tel"]
+            st.session_state["kunde_anrede"] = payload.get("kunde_anrede", "")
+            st.session_state["kunde_name"] = payload.get("kunde_name", "")
+            st.session_state["kunde_adresse"] = payload.get("kunde_adresse", "")
+            st.session_state["kunde_ort"] = payload.get("kunde_ort", "")
+            st.session_state["kunde_tel"] = payload.get("kunde_tel", "")
 
             # Fahrzeugdaten
-            st.session_state["fahrzeug_marke"] = data["fahrzeug_marke"]
-            st.session_state["fahrzeug_baujahr"] = data["fahrzeug_baujahr"]
-            st.session_state["fahrzeug_farbe"] = data["fahrzeug_farbe"]
-            st.session_state["fahrzeug_fin"] = data["fahrzeug_fin"]
+            st.session_state["fahrzeug_marke"] = payload.get("fahrzeug_marke", "")
+            st.session_state["fahrzeug_baujahr"] = payload.get("fahrzeug_baujahr", "")
+            st.session_state["fahrzeug_farbe"] = payload.get("fahrzeug_farbe", "")
+            st.session_state["fahrzeug_fin"] = payload.get("fahrzeug_fin", "")
 
-            # Rechnungsdaten
-            st.session_state["modus"] = data["modus"]
-            st.session_state["rechnungsnr_index"] = data["rechnungsnr_index"]
+            # Rechnung
+            st.session_state["modus"] = payload.get("modus", "Brutto")
+            st.session_state["rechnungsnr_index"] = payload.get("rechnungsnr_index", "")
             st.session_state["rechnungsdatum_obj"] = date.fromisoformat(
-                data["rechnungsdatum_obj"]
+                payload.get("rechnungsdatum_obj")
             )
 
             # Positionen
-            st.session_state["anzahl_positionen"] = data["anzahl_positionen"]
-            for i, pos in enumerate(data["positionen"]):
-                st.session_state[f"beschreibung_{i}"] = pos["beschreibung"]
-                st.session_state[f"betrag_{i}"] = pos["summe"]
+            st.session_state["anzahl_positionen"] = payload.get("anzahl_positionen", 1)
+            for i, pos in enumerate(payload.get("positionen", [])):
+                st.session_state[f"beschreibung_{i}"] = pos.get("beschreibung", "")
+                st.session_state[f"betrag_{i}"] = pos.get("summe", 0.0)
 
-        del st.session_state["edit_invoice_number"]
+            # WICHTIG
+            st.session_state["edit_loaded_for"] = st.session_state["edit_invoice_number"]
+
     
     # --- Auswahl des Unternehmens ---
-    unternehmen = st.selectbox("Unternehmen auswählen", ["DellKuss", "Automobile Kuss"])
+    unternehmen = st.selectbox("Unternehmen auswählen", ["DellKuss", "Automobile Kuss"], key="unternehmen")
     # --- Unternehmensspezifische Daten ---
     if unternehmen == "DellKuss":
         logo_path = "assets/logo.png"
@@ -237,7 +258,11 @@ elif page == "🗃️ Rechnung erstellen":
     modus = st.session_state.get("modus", "Brutto")
     
 
-    rechnungsnr_index = st.text_input("Rechnungsnr_Index", key="rechnungsnr_index")
+    #rechnungsnr_index = st.text_input("Rechnungsnr_Index", key="rechnungsnr_index")
+    rechnungsnr_index = st.text_input(
+        "Rechnungsnr_Index",
+        key="rechnungsnr_index"
+    )
     if "rechnungsdatum_obj" not in st.session_state:
         st.session_state["rechnungsdatum_obj"] = date.today()
     rechnungsdatum_obj = st.date_input(
@@ -368,45 +393,51 @@ elif page == "🗃️ Rechnung erstellen":
             "positionen": positionen_liste
         }
 
+        mode = "update" if st.session_state.get("edit_invoice_number") else "create"
         result = save_invoice(
             invoice_number=rechnungsnummer,
             invoice_date=rechnungsdatum_obj.isoformat(),
             customer_name=kunde_name,
             total=brutto_val,
-            payload=payload
+            payload=payload,
+            mode=mode
         )
 
         if result == "DUPLICATE_INVOICE_NUMBER":
-            st.error("⚠️ ACHTUNG: Rechnungsnummer existiert bereits.")
+            st.error("⚠️ Rechnungsnummer existiert bereits.")
+        else:
+            # Erfolgsmeldung
+            if mode == "update":
+                st.success("✅ Rechnung aktualisiert.")
+            else:
+                st.success("✅ Rechnung gespeichert.")
 
-        elif result is True:
-            st.success("Rechnung im Archiv gespeichert. Eine Rechnungsnr. existiert nur einmal!")
+            # PDF erzeugen (IMMER, unabhängig von create/update)
+            create_invoice_pdf(
+                buffer,
+                logo_path,
+                kunde,
+                fahrzeug,
+                positionen_liste,
+                summen,
+                firmendaten,
+                fusszeile,
+                kontakt
+            )
 
-        # PDF erzeugen
-        create_invoice_pdf(
-            buffer,
-            logo_path,
-            kunde,
-            fahrzeug,
-            positionen_liste,
-            summen,
-            firmendaten,
-            fusszeile,
-            kontakt
-        )
+            buffer.seek(0)
 
-        # Nach create_invoice_pdf(...)
-        buffer.seek(0)
+            # Session State für Vorschau & Download
+            st.session_state["pdf_buffer"] = buffer.getvalue()
+            st.session_state["pdf_preview"] = base64.b64encode(buffer.getvalue()).decode()
+            st.session_state["pdf_ready"] = True
+            st.session_state["show_preview"] = False
+            st.session_state["download_name"] = f"Rechnung_{summen['rechnungsnummer']}.pdf"
 
-        # Session State
-        st.session_state["pdf_buffer"] = buffer.getvalue()
-        st.session_state["pdf_preview"] = base64.b64encode(buffer.getvalue()).decode()
-        st.session_state["pdf_ready"] = True
-        st.session_state["show_preview"] = False
-        st.session_state["download_name"] = f"Rechnung_{summen['rechnungsnummer']}.pdf"
-        # Dateiname
-        #download_name = f"Rechnung_{summen['rechnungsnummer']}.pdf"
-        st.success("✅ Rechnung erfolgreich erstellt!")
+            # Edit-Modus sauber beenden
+            st.session_state["is_edit_mode"] = False
+            st.session_state["edit_loaded_for"] = None
+            st.session_state.pop("edit_invoice_number", None)
 
     # =====================
     # PDF VORSCHAU + DOWNLOAD
@@ -460,12 +491,13 @@ elif page == "🐙 Archiv":
             _, nummer, _, kunde, _, _ = r
             data = get_invoice_by_number(nummer)
 
+            payload = data.get("payload", {})
             table_data.append({
-                "Unternehmen": data.get("unternehmen", "–"),
+                "Unternehmen": payload.get("unternehmen"),
                 "Rechnungsnummer": nummer,
                 "Kunde": kunde,
-                "Fahrzeug": data.get("fahrzeug_marke", "–"),
-                "Farbe": data.get("fahrzeug_farbe", "–"),
+                "Fahrzeug": payload.get("fahrzeug_marke"),
+                "Farbe": payload.get("fahrzeug_farbe"),
             })
 
         df = pd.DataFrame(table_data)
@@ -509,6 +541,8 @@ elif page == "🐙 Archiv":
         with col_edit:
             if st.button("✏️ Bearbeiten"):
                 st.session_state["edit_invoice_number"] = selected_invoice
+                st.session_state["is_edit_mode"] = True
+                st.session_state["navigate_to"] = "🗃️ Rechnung erstellen"
                 st.rerun()
 
         # ---------- LÖSCHEN ----------
@@ -539,7 +573,6 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
-
 
 
 
