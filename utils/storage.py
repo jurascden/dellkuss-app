@@ -21,13 +21,22 @@ def save_invoice(
     total: float,
     payload: dict
 ):
-    supabase.table(TABLE).insert({
-        "invoice_number": invoice_number,
-        "invoice_date": invoice_date,
-        "customer_name": customer_name,
-        "total": total,
-        "payload": payload
-    }).execute()
+    try:
+        supabase.table(TABLE).insert({
+            "invoice_number": invoice_number,
+            "invoice_date": invoice_date,
+            "customer_name": customer_name,
+            "total": total,
+            "payload": payload
+        }).execute()
+
+        return True
+
+    except APIError as e:
+        if "duplicate key value violates unique constraint" in str(e):
+            return "DUPLICATE_INVOICE_NUMBER"
+        else:
+            raise e
 
 
 # =========================
