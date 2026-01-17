@@ -15,6 +15,7 @@ SUM_TOP_Y = FOOTER_LINE1_Y + 50
 ITEMS_PER_PAGE = 20
 LINE_HEIGHT = 14
 
+
 # ------------------------------------------------------------
 # Tabellenkopf & Footer (unverändert)
 # ------------------------------------------------------------
@@ -90,9 +91,19 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
             "email": "kontakt@dellkuss.de",
             "web": "www.dellkuss.de"
         }
-    c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
-    c.drawString(kontakt_x_right, kontakt_y_start - 14, f"E-Mail: {kontakt.get('email', '')}")
-    c.drawString(kontakt_x_right, kontakt_y_start - 28, f"Web: {kontakt.get('web', '')}")
+    # c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
+    # c.drawString(kontakt_x_right, kontakt_y_start - 14, f"E-Mail: {kontakt.get('email', '')}")
+    # c.drawString(kontakt_x_right, kontakt_y_start - 28, f"Web: {kontakt.get('web', '')}")
+    y_pos = kontakt_y_start
+    if "tel" in kontakt:
+        c.drawString(kontakt_x_right, y_pos, f"Tel.: {kontakt['tel']}")
+        y_pos -= 14
+    if "email" in kontakt:
+        c.drawString(kontakt_x_right, y_pos, f"E-Mail: {kontakt['email']}")
+        y_pos -= 14
+    if "web" in kontakt:
+        c.drawString(kontakt_x_right, y_pos, f"Web: {kontakt['web']}")
+        y_pos -= 14
 
     # ------------------------------------------------------------
     # RECHNUNGS-INFOS
@@ -238,6 +249,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     draw_footer(c, width, fusszeile)
     c.showPage()
     c.save()
+
 
 
 
