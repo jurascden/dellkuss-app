@@ -189,13 +189,13 @@ elif page == "🗃️ Rechnung erstellen":
         ]
     else:
         logo_path = "assets/logo2.png"
-        firmendaten = ["Jaroslaw Kuss", "Edisonstr. 9", "86399 Bobingen"]
+        firmendaten = ["Automobile Kuss (Inh. David Kuss)", "Edisonstr. 9", "86399 Bobingen"]
         kontakt = {
-        "tel": "08234 / 123456",
+        "tel": "+49 157 58226071",
         }
         fusszeile = [
-            "Automobile Kuss · Sparkasse Schwaben-Bodensee · IBAN DE99 7001 1111 2222 3333 44 · BIC ABCDDEFFXXX",
-            "Sitz der Firma: Bobingen, Deutschland · Geschäftsführung: Jaroslaw Kuss · USt-IdNr. DE000000000"
+            "Automobile Kuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
+            "Sitz der Firma: Bobingen, Deutschland · Inhaber: David Kuss · USt-IdNr. DE75392071642"
         ]
 
     # --- Kundendaten ---
@@ -368,13 +368,19 @@ elif page == "🗃️ Rechnung erstellen":
             "positionen": positionen_liste
         }
 
-        save_invoice(
+        result = save_invoice(
             invoice_number=rechnungsnummer,
             invoice_date=rechnungsdatum_obj.isoformat(),
             customer_name=kunde_name,
             total=brutto_val,
             payload=payload
         )
+
+        if result == "DUPLICATE_INVOICE_NUMBER":
+            st.error("⚠️ ACHTUNG: Rechnungsnummer existiert bereits.")
+
+        elif result is True:
+            st.success("Rechnung im Archiv gespeichert. Eine Rechnungsnr. existiert nur einmal!")
 
         # PDF erzeugen
         create_invoice_pdf(
@@ -433,11 +439,11 @@ elif page == "🗃️ Rechnung erstellen":
             mime="application/pdf"
         )
 
-        # OPTIONAL lokal speichern:
-        pdf_folder = Path("pdf/export")
-        pdf_folder.mkdir(parents=True, exist_ok=True)
-        with open(pdf_folder / st.session_state["download_name"], "wb") as f:
-            f.write(st.session_state["pdf_buffer"])
+        # # OPTIONAL lokal speichern:
+        # pdf_folder = Path("pdf/export")
+        # pdf_folder.mkdir(parents=True, exist_ok=True)
+        # with open(pdf_folder / st.session_state["download_name"], "wb") as f:
+        #     f.write(st.session_state["pdf_buffer"])
 
 # ==============================
 # ARCHIV
@@ -533,6 +539,7 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
