@@ -28,10 +28,12 @@ def draw_table_header(c, width, height, header_y):
     c.line(40, header_y - 17, width - 40, header_y - 17)
 
 
-def draw_footer(c, width, fusszeile=None):
+def draw_footer(c, width, fusszeile=None, dokument_typ="Rechnung"):
     c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, FOOTER_LINE1_Y,
-        "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Rechnungsdatum auf das unten stehende Geschäftskonto.")
+    if dokument_typ == "Rechnung":
+        c.drawCentredString(width / 2, FOOTER_LINE1_Y,
+            "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Rechnungsdatum auf das unten stehende Geschäftskonto.")
+    
     c.setFont("Helvetica", 7.5)
     if not fusszeile:
         fusszeile = ["dellkuss · Sparkasse Schwaben-Bodensee · IBAN DE92 7315 0000 1002 9247 83 · BIC BYLADEM1MLM",
@@ -43,11 +45,12 @@ def draw_footer(c, width, fusszeile=None):
 # ------------------------------------------------------------
 # Hauptfunktion – identisches Layout, aber mit Streamlit-Daten
 # ------------------------------------------------------------
-def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None, kontakt=None):
+def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, firmendaten=None, fusszeile=None, kontakt=None, dokument_typ="Rechnung"):
     """target: str/Pfad (lokal speichern) ODER file-like (BytesIO für Cloud/iPhone)"""
     c = canvas.Canvas(target, pagesize=A4)
     width, height = A4
-    c.setTitle("Rechnung")
+    titel = "Rechnung" if dokument_typ == "Rechnung" else "Kostenvoranschlag"
+    c.setTitle(titel)
     c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica", 9)
 
@@ -110,20 +113,25 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     # ------------------------------------------------------------
     c.setFont("Helvetica-Bold", 10)
     y_rechnung_titel = kontakt_y_start - 60
-    c.drawString(40, y_rechnung_titel, "Rechnung")
+    titel = "Rechnung" if dokument_typ == "Rechnung" else "Kostenvoranschlag"
+    c.drawString(40, y_rechnung_titel, titel)
 
     y_start_infos = y_rechnung_titel - 14
     c.setFont("Helvetica", 9)
-    rechnungsnummer = summen.get("rechnungsnummer", "")
-    c.drawString(40, y_start_infos, "Rechnungsnr.:")
-    c.drawString(120, y_start_infos, rechnungsnummer)
-    c.drawString(40, y_start_infos - 14, "Rechnungsdatum:")
-    c.drawString(120, y_start_infos - 14, summen.get("datum", ""))
+    if dokument_typ == "Rechnung":
+        rechnungsnummer = summen.get("rechnungsnummer", "")
+        c.drawString(40, y_start_infos, "Rechnungsnr.:")
+        c.drawString(120, y_start_infos, rechnungsnummer)
+        c.drawString(40, y_start_infos - 14, "Rechnungsdatum:")
+        c.drawString(120, y_start_infos - 14, summen.get("datum", ""))
+        y_fahrzeug_start = y_start_infos - (14 * 3)
+    else:
+        # Kein Rechnungsblock → Fahrzeug rutscht nach oben
+        y_fahrzeug_start = y_rechnung_titel - 30
 
     # ------------------------------------------------------------
     # FAHRZEUGDATEN-BLOCK
     # ------------------------------------------------------------
-    y_fahrzeug_start = y_start_infos - (14 * 3)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(40, y_fahrzeug_start, "Fahrzeugdaten")
     c.setFont("Helvetica", 9)
@@ -159,7 +167,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
 
         # Seitenumbruch
         if lines_on_page == ITEMS_PER_PAGE:
-            draw_footer(c, width, fusszeile)
+            draw_footer(c, width, fusszeile, dokument_typ)
             c.showPage()
             new_header_y = height - 60
             c.setFont("Helvetica-Bold", 9)
@@ -246,7 +254,7 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     # ------------------------------------------------------------
     # FOOTER + ABSCHLUSS
     # ------------------------------------------------------------
-    draw_footer(c, width, fusszeile)
+    draw_footer(c, width, fusszeile, dokument_typ)
     c.showPage()
     c.save()
 
