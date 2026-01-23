@@ -155,6 +155,11 @@ if page == "🌤️ Startseite":
 # ==============================
 elif page == "🗃️ Rechnung erstellen":
     st.header("Neue Rechnung")
+    dokument_typ = st.selectbox(
+        "Dokumenttyp",
+        ["Rechnung", "Kostenvoranschlag"],
+        key="dokument_typ"
+    )
     if st.session_state.get("edit_invoice_number") and \
         st.session_state.get("edit_loaded_for") != st.session_state["edit_invoice_number"]:
 
@@ -258,19 +263,27 @@ elif page == "🗃️ Rechnung erstellen":
     modus = st.session_state.get("modus", "Brutto")
     
 
-    #rechnungsnr_index = st.text_input("Rechnungsnr_Index", key="rechnungsnr_index")
-    rechnungsnr_index = st.text_input(
-        "Rechnungsnr_Index",
-        key="rechnungsnr_index"
-    )
-    if "rechnungsdatum_obj" not in st.session_state:
-        st.session_state["rechnungsdatum_obj"] = date.today()
-    rechnungsdatum_obj = st.date_input(
-        "Rechnungsdatum",
-        key="rechnungsdatum_obj"
-    )
-    rechnungsdatum = rechnungsdatum_obj.strftime("%d.%m.%Y")
+    if dokument_typ == "Rechnung":
+        rechnungsnr_index = st.text_input(
+            "Rechnungsnr_Index",
+            key="rechnungsnr_index"
+        )
+        if "rechnungsdatum_obj" not in st.session_state:
+            st.session_state["rechnungsdatum_obj"] = date.today()
+        rechnungsdatum_obj = st.date_input(
+            "Rechnungsdatum",
+            key="rechnungsdatum_obj"
+        )
+    else:
+        rechnungsnr_index = None
+        rechnungsdatum_obj = None
+
+    if rechnungsdatum_obj:
+        rechnungsdatum = rechnungsdatum_obj.strftime("%d.%m.%Y")
+    else:
+        rechnungsdatum = None
     rechnungsnummer_datum = rechnungsdatum
+
     if "anzahl_positionen" not in st.session_state:
         st.session_state["anzahl_positionen"] = 1
     st.number_input(
@@ -316,14 +329,13 @@ elif page == "🗃️ Rechnung erstellen":
     from utils.pdf_generator_v2 import create_invoice_pdf
     if st.button("📄 PDF erstellen"):
         # --- Rechnungsnummer manuell zusammensetzen (neues Format: YYYY{index}) ---
-        index_clean = str(rechnungsnr_index).strip()
-        jahr = rechnungsdatum_obj.year
-        rechnungsnummer = f"{jahr}{index_clean}"
-        # Dateipfad
-        #pdf_folder = Path("pdf/export")
-        #pdf_folder.mkdir(parents=True, exist_ok=True)
-        #pdf_filename = f"Rechnung_{rechnungsnummer}.pdf"
-        #pdf_path = pdf_folder / pdf_filename
+        if dokument_typ == "Rechnung":
+            index_clean = str(rechnungsnr_index).strip()
+            jahr = rechnungsdatum_obj.year
+            rechnungsnummer = f"{jahr}{index_clean}"
+        else:
+            rechnungsnummer = None
+
         buffer = BytesIO()
 
         # Daten vorbereiten für PDF
@@ -371,6 +383,7 @@ elif page == "🗃️ Rechnung erstellen":
 
         payload = {
             "unternehmen": unternehmen,
+            "dokument_typ": dokument_typ,
 
             "kunde_anrede": kunde_anrede,
             "kunde_name": kunde_name,
@@ -386,58 +399,69 @@ elif page == "🗃️ Rechnung erstellen":
             "modus": modus,
             "rechnungsnr_index": rechnungsnr_index,
             "rechnungsdatum": rechnungsdatum,
-            "rechnungsdatum_obj": rechnungsdatum_obj.isoformat(),
+            "rechnungsdatum_obj": rechnungsdatum_obj.isoformat() if rechnungsdatum_obj else None,
 
             "anzahl_positionen": int(anzahl_positionen),
 
             "positionen": positionen_liste
         }
 
-        mode = "update" if st.session_state.get("edit_invoice_number") else "create"
-        result = save_invoice(
-            invoice_number=rechnungsnummer,
-            invoice_date=rechnungsdatum_obj.isoformat(),
-            customer_name=kunde_name,
-            total=brutto_val,
-            payload=payload,
-            mode=mode
-        )
-
-        if result == "DUPLICATE_INVOICE_NUMBER":
-            st.error("⚠️ Rechnungsnummer existiert bereits.")
-        else:
-            # Erfolgsmeldung
-            if mode == "update":
-                st.success("✅ Rechnung aktualisiert.")
-            else:
-                st.success("✅ Rechnung gespeichert.")
-
-            # PDF erzeugen (IMMER, unabhängig von create/update)
-            create_invoice_pdf(
-                buffer,
-                logo_path,
-                kunde,
-                fahrzeug,
-                positionen_liste,
-                summen,
-                firmendaten,
-                fusszeile,
-                kontakt
+        # -----------------------
+        # 1. NUR Rechnung speichern
+        # -----------------------
+        if dokument_typ == "Rechnung":
+            mode = "update" if st.session_state.get("edit_invoice_number") else "create"
+            result = save_invoice(
+                invoice_number=rechnungsnummer,
+                invoice_date=rechnungsdatum_obj.isoformat(),
+                customer_name=kunde_name,
+                total=brutto_val,
+                payload=payload,
+                mode=mode
             )
 
-            buffer.seek(0)
+            if result == "DUPLICATE_INVOICE_NUMBER":
+                st.error("⚠️ Rechnungsnummer existiert bereits.")
+            else:
+                # Erfolgsmeldung
+                if mode == "update":
+                    st.success("✅ Rechnung aktualisiert.")
+                else:
+                    st.success("✅ Rechnung gespeichert.")
+        # -----------------------
+        # 2. PDF IMMER erzeugen
+        # -----------------------
+        # PDF erzeugen (IMMER, unabhängig von create/update)
+        create_invoice_pdf(
+            buffer,
+            logo_path,
+            kunde,
+            fahrzeug,
+            positionen_liste,
+            summen,
+            firmendaten,
+            fusszeile,
+            kontakt,
+            dokument_typ=dokument_typ
+        )
 
-            # Session State für Vorschau & Download
-            st.session_state["pdf_buffer"] = buffer.getvalue()
-            st.session_state["pdf_preview"] = base64.b64encode(buffer.getvalue()).decode()
-            st.session_state["pdf_ready"] = True
-            st.session_state["show_preview"] = False
-            st.session_state["download_name"] = f"Rechnung_{summen['rechnungsnummer']}.pdf"
+        buffer.seek(0)
 
-            # Edit-Modus sauber beenden
-            st.session_state["is_edit_mode"] = False
-            st.session_state["edit_loaded_for"] = None
-            st.session_state.pop("edit_invoice_number", None)
+        # Session State für Vorschau & Download
+        st.session_state["pdf_buffer"] = buffer.getvalue()
+        st.session_state["pdf_preview"] = base64.b64encode(buffer.getvalue()).decode()
+        st.session_state["pdf_ready"] = True
+        st.session_state["show_preview"] = False
+        st.session_state["download_name"] = (
+            f"Rechnung_{summen['rechnungsnummer']}.pdf"
+            if dokument_typ == "Rechnung"
+            else "Kostenvoranschlag.pdf"
+        )
+
+        # Edit-Modus sauber beenden
+        st.session_state["is_edit_mode"] = False
+        st.session_state["edit_loaded_for"] = None
+        st.session_state.pop("edit_invoice_number", None)
 
     # =====================
     # PDF VORSCHAU + DOWNLOAD
@@ -469,12 +493,6 @@ elif page == "🗃️ Rechnung erstellen":
             file_name=st.session_state["download_name"],
             mime="application/pdf"
         )
-
-        # # OPTIONAL lokal speichern:
-        # pdf_folder = Path("pdf/export")
-        # pdf_folder.mkdir(parents=True, exist_ok=True)
-        # with open(pdf_folder / st.session_state["download_name"], "wb") as f:
-        #     f.write(st.session_state["pdf_buffer"])
 
 # ==============================
 # ARCHIV
@@ -573,6 +591,7 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
