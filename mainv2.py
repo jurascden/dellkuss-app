@@ -289,7 +289,7 @@ elif page == "🗃️ Rechnung erstellen":
     st.number_input(
         "Anzahl der Positionen",
         min_value=1,
-        max_value=50,
+        max_value=1000,
         key="anzahl_positionen"
     )
     anzahl_positionen = st.session_state["anzahl_positionen"]
@@ -591,6 +591,7 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
