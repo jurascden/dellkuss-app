@@ -59,28 +59,26 @@ def save_invoice(
 # =========================
 # READ ALL
 # =========================
-def get_all_invoices():
+def get_all_invoices(limit: int = 50):
     res = (
         supabase
-        .table(TABLE)
-        .select("id, invoice_number, invoice_date, customer_name, total, created_at")
+        .table("invoices")
+        .select("id, invoice_number, invoice_date, customer_name, total")
         .order("created_at", desc=True)
+        .limit(limit)
         .execute()
     )
 
-    if not res.data:
-        return []
-
+    data = res.data or []
     return [
         (
-            row["id"],
-            row["invoice_number"],
-            row["invoice_date"],
-            row["customer_name"],
-            row["total"],
-            row["created_at"],
+            d["id"],
+            d["invoice_number"],
+            d["invoice_date"],
+            d["customer_name"],
+            d["total"],
         )
-        for row in res.data
+        for d in data
     ]
 
 
@@ -88,19 +86,15 @@ def get_all_invoices():
 # READ
 # =========================
 def get_invoice_by_number(invoice_number: str):
-    if not invoice_number:
-        return None
-
-    result = (
+    res = (
         supabase
-        .table(TABLE)
-        .select("*")
+        .table("invoices")
+        .select("id, invoice_number, invoice_date, customer_name, total, payload")
         .eq("invoice_number", invoice_number)
-        .maybe_single()
+        .single()
         .execute()
     )
-
-    return result.data
+    return res.data
 
 
 # =========================
