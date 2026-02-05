@@ -252,7 +252,7 @@ elif page == "🗃️ Rechnung erstellen":
     if "modus" not in st.session_state:
         st.session_state["modus"] = "Brutto"
     st.markdown("**Betragsmodus**")
-    bcol1, bcol2, _ = st.columns([0.12, 0.12, 1])
+    bcol1, bcol2, bcol3, _ = st.columns([0.12, 0.12, 0.12, 0.64])
     current = st.session_state.get("modus", "Brutto")
     with bcol1:
         if st.button("Brutto", key="modus_brutto"):
@@ -260,6 +260,9 @@ elif page == "🗃️ Rechnung erstellen":
     with bcol2:
         if st.button("Netto", key="modus_netto"):
             st.session_state["modus"] = "Netto"
+    with bcol3:
+        if st.button("Firma", key="modus_firma"):
+            st.session_state["modus"] = "Firma"
     modus = st.session_state.get("modus", "Brutto")
     
 
@@ -317,12 +320,18 @@ elif page == "🗃️ Rechnung erstellen":
         with col1: st.metric("Summe netto (€)", f"{summe_netto:,.2f}")
         with col2: st.metric("MwSt (19%) (€)", f"{mwst:,.2f}")
         with col3: st.metric("Gesamtbetrag (€)", f"{summe_brutto:,.2f}")
-    else:
+    elif modus == "Netto":
         # Netto-Modus: nur Gesamtbetrag netto anzeigen, ohne MwSt
         mwst = 0.0
         summe_brutto = summe_netto
         col = st.columns(1)[0]
         col.metric("Gesamtbetrag netto (€)", f"{summe_netto:,.2f}")
+    elif modus == "Firma":
+        # Firma-Modus: wie Netto, aber Label "Betrag"
+        mwst = 0.0
+        summe_brutto = summe_netto
+        col = st.columns(1)[0]
+        col.metric("Betrag (€)", f"{summe_netto:,.2f}")
 
     # --- Aktionen ---
     st.subheader("🌌 Aktionen")
@@ -367,8 +376,12 @@ elif page == "🗃️ Rechnung erstellen":
         if modus == "Brutto":
             mwst_val = summe_netto * 0.19
             brutto_val = summe_netto * 1.19
-        else:
+        elif modus == "Netto":
             # Netto-Modus: keine MwSt
+            mwst_val = 0.0
+            brutto_val = summe_netto
+        elif modus == "Firma":
+            # Firma-Modus: keine MwSt
             mwst_val = 0.0
             brutto_val = summe_netto
 
@@ -506,16 +519,14 @@ elif page == "🐙 Archiv":
         table_data = []
 
         for r in rows:
-            _, nummer, _, kunde, _, _ = r
-            data = get_invoice_by_number(nummer)
+            # NEW tuple structure: id, invoice_number, invoice_date, customer_name, total
+            _, nummer, datum, kunde, total = r
 
-            payload = data.get("payload", {})
             table_data.append({
-                "Unternehmen": payload.get("unternehmen"),
                 "Rechnungsnummer": nummer,
+                "Datum": datum,
                 "Kunde": kunde,
-                "Fahrzeug": payload.get("fahrzeug_marke"),
-                "Farbe": payload.get("fahrzeug_farbe"),
+                "Betrag": f"{total:.2f} €" if total else "0.00 €"
             })
 
         df = pd.DataFrame(table_data)
@@ -523,21 +534,19 @@ elif page == "🐙 Archiv":
         # ==============================
         # FILTER
         # ==============================
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             f_kunde = st.text_input("Kunde filtern")
+        
+        # Placeholder for layout if needed, or just remove col2
         with col2:
-            f_fahrzeug = st.text_input("Fahrzeug filtern")
+            st.write("") # Empty 
 
         filtered_df = df.copy()
 
         if f_kunde:
             filtered_df = filtered_df[
                 filtered_df["Kunde"].str.contains(f_kunde, case=False, na=False)
-            ]
-        if f_fahrzeug:
-            filtered_df = filtered_df[
-                filtered_df["Fahrzeug"].str.contains(f_fahrzeug, case=False, na=False)
             ]
 
         st.dataframe(
@@ -591,6 +600,7 @@ elif page == "🐙 Archiv":
 
 st.markdown("---")
 st.caption("© 2024 DellKuss – Der Dellendoktor")
+
 
 
 
