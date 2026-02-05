@@ -27,11 +27,18 @@ def draw_table_header(c, width, height, header_y):
     c.drawString(width - 86, header_y - 10, "Gesamt (€)")
     c.line(40, header_y - 17, width - 40, header_y - 17)
 
-
-def draw_footer(c, width, fusszeile=None, dokument_typ="Rechnung"):
+def draw_footer_v2(c, width, fusszeile=None, dokument_typ="Rechnung", mode="Brutto"):
     c.setFont("Helvetica", 8)
     if dokument_typ == "Rechnung":
-        c.drawCentredString(width / 2, FOOTER_LINE1_Y,
+        # Standard Text Position
+        y_std = FOOTER_LINE1_Y 
+        
+        # Zusatztext für Firma
+        if mode == "Firma":
+            # "über" dem Standardtext, ca. 14pt höher => y=74
+            c.drawCentredString(width / 2, 74, "Für Vorsteuerabzugsberechtigte kein Umsatzsteuerausweis möglich, § 25 a UStG")
+        
+        c.drawCentredString(width / 2, y_std,
             "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Rechnungsdatum auf das unten stehende Geschäftskonto.")
     
     c.setFont("Helvetica", 7.5)
@@ -94,9 +101,6 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
             "email": "kontakt@dellkuss.de",
             "web": "www.dellkuss.de"
         }
-    # c.drawString(kontakt_x_right, kontakt_y_start, f"Tel.: {kontakt.get('tel', '')}")
-    # c.drawString(kontakt_x_right, kontakt_y_start - 14, f"E-Mail: {kontakt.get('email', '')}")
-    # c.drawString(kontakt_x_right, kontakt_y_start - 28, f"Web: {kontakt.get('web', '')}")
     y_pos = kontakt_y_start
     if "tel" in kontakt:
         c.drawString(kontakt_x_right, y_pos, f"Tel.: {kontakt['tel']}")
@@ -167,7 +171,8 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
 
         # Seitenumbruch
         if lines_on_page == ITEMS_PER_PAGE:
-            draw_footer(c, width, fusszeile, dokument_typ)
+            mode_current = summen.get("mode", "Brutto")
+            draw_footer_v2(c, width, fusszeile, dokument_typ, mode=mode_current)
             c.showPage()
             new_header_y = height - 60
             c.setFont("Helvetica-Bold", 9)
@@ -219,13 +224,26 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     mode = summen.get("mode", "Brutto")
 
     if mode == "Netto":
-        # Netto-Block im Brutto-Stil: doppelter Strich + Endsumme
+        # Netto-Modus im Brutto-Stil: doppelter Strich + Endsumme
         y_sum_block = y - LINE_HEIGHT - 20
         c.line(width - 165, y_sum_block - 4, width - 40, y_sum_block - 4)
         c.line(width - 165, y_sum_block - 7, width - 40, y_sum_block - 7)
 
         c.setFont("Helvetica-Bold", 9)
         c.drawRightString(width - 100, y_sum_block, "Nettobetrag:")
+        c.drawRightString(width - 40, y_sum_block,
+                          f"{summe_netto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    elif mode == "Firma":
+        # Firma-Modus: Label "Betrag", Linien kürzer (starten bei width - 130 statt -165)
+        # Doppelter Strich + Betrag
+        y_sum_block = y - LINE_HEIGHT - 20
+        line_start_x = width - 130
+        
+        c.line(line_start_x, y_sum_block - 4, width - 40, y_sum_block - 4)
+        c.line(line_start_x, y_sum_block - 7, width - 40, y_sum_block - 7)
+
+        c.setFont("Helvetica-Bold", 9)
+        c.drawRightString(width - 100, y_sum_block, "Betrag:")
         c.drawRightString(width - 40, y_sum_block,
                           f"{summe_netto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
     else:
@@ -254,9 +272,13 @@ def create_invoice_pdf(target, logo_path, kunde, fahrzeug, positionen, summen, f
     # ------------------------------------------------------------
     # FOOTER + ABSCHLUSS
     # ------------------------------------------------------------
-    draw_footer(c, width, fusszeile, dokument_typ)
+    # ------------------------------------------------------------
+    # FOOTER + ABSCHLUSS
+    # ------------------------------------------------------------
+    draw_footer_v2(c, width, fusszeile, dokument_typ, mode=mode)
     c.showPage()
     c.save()
+
 
 
 
